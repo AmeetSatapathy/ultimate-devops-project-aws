@@ -436,4 +436,88 @@ variable "node_groups" {}
 
 Would you like me to zip and send this whole working structure as code? Or would you prefer the full copy-paste version of one of the module files (like actual VPC/EKS resources inside `main.tf`)?
 
+=============================================================================================================
+
+Awesome! Here's a **visual cheat sheet** of all the ways to pass variables in Terraform, with pros, use cases, and priority order.
+
+---
+
+## 📊 Terraform Variable Precedence (Highest to Lowest Priority)
+
+```
++-----------------------------+---------------------------+
+|     Method                  |     Example / Notes       |
++-----------------------------+---------------------------+
+| 1. CLI -var option          | terraform apply -var="region=us-west-2"  
+|                             | ✅ Highest priority        |
++-----------------------------+---------------------------+
+| 2. CLI -var-file option     | terraform apply -var-file="custom.tfvars"  
+|                             | Overrides lower sources   |
++-----------------------------+---------------------------+
+| 3. Environment variables    | export TF_VAR_region="us-west-2"  
+|                             | Useful in CI/CD pipelines |
++-----------------------------+---------------------------+
+| 4. terraform.tfvars         | Common default value file |
+|                             | Auto-loaded by Terraform  |
++-----------------------------+---------------------------+
+| 5. *.auto.tfvars files      | Also auto-loaded          |
+|                             | Alphabetical order if multiple |
++-----------------------------+---------------------------+
+| 6. Default in variables.tf  | variable "region" { default = "us-east-1" }  
+|                             | ✅ Lowest priority         |
++-----------------------------+---------------------------+
+```
+
+---
+
+## ✅ Best Practices Summary
+
+| Goal                     | Recommended Approach                                                                    |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| Simple local development | Use `terraform.tfvars` for values and `variables.tf` for declarations                   |
+| Multiple environments    | Use multiple `.tfvars` files like `dev.tfvars`, `prod.tfvars` and load with `-var-file` |
+| CI/CD or automation      | Use environment variables or a secret manager to avoid hardcoded values                 |
+| Team collaboration       | Always declare variables in `variables.tf` for clarity and validation                   |
+
+---
+
+## 📁 Sample Project Structure
+
+```
+terraform-project/
+├── main.tf
+├── variables.tf
+├── terraform.tfvars             <- Auto-loaded
+├── dev.tfvars                   <- Optional, use with `-var-file=dev.tfvars`
+├── prod.tfvars                  <- Optional, use with `-var-file=prod.tfvars`
+```
+
+---
+
+## 🧪 Real-Life Example
+
+### 📄 variables.tf
+
+```hcl
+variable "region" {
+  type        = string
+  description = "AWS region to deploy resources"
+}
+```
+
+### 📄 terraform.tfvars
+
+```hcl
+region = "us-west-2"
+```
+
+### CLI Override (takes precedence over tfvars)
+
+```bash
+terraform apply -var="region=us-east-1"
+```
+
+---
+
+Let me know if you want a printable PDF version or a command-line quick reference!
 
