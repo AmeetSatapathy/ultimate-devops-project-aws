@@ -1,0 +1,108 @@
+That's a **very important question**, and you're not alone in wondering this. Let's break it down clearly.
+
+---
+
+## 💡 Short Answer:
+
+> **Terraform takes variable values from the main/root module — *not* from the module’s own `variables.tf`.**
+
+---
+
+## 🔄 How It Works (Step-by-Step)
+
+Let's say you have this directory structure:
+
+```
+/terraform-main/
+│
+├── main.tf               <-- root module
+├── variables.tf          <-- root module variables
+├── terraform.tfvars      <-- variable values (optional)
+├── modules/
+│   └── vpc/
+│       ├── main.tf       <-- child module
+│       ├── variables.tf  <-- defines what inputs the module expects
+│       └── outputs.tf    <-- defines what the module exports
+```
+
+---
+
+### 🧠 When You Run `terraform apply` from `/terraform-main/`:
+
+1. Terraform starts at the **root module** (`main.tf` in `/terraform-main/`).
+2. It reads all `*.tf` files in that directory:
+
+   * `main.tf`
+   * `variables.tf`
+   * `terraform.tfvars` (if present)
+3. When the root module **calls a module**, like this:
+
+   ```hcl
+   module "vpc" {
+     source = "./modules/vpc"
+     vpc_cidr = var.vpc_cidr
+     ...
+   }
+   ```
+
+   * Terraform looks inside `./modules/vpc/variables.tf` **to understand what inputs are needed** — but it **does NOT get values from there**.
+   * Instead, it passes the values from the root module (`main.tf`, `variables.tf`, or `.tfvars` files).
+
+---
+
+## ✅ Example to Clarify
+
+### Root Module (`/terraform-main/variables.tf`)
+
+```hcl
+variable "vpc_cidr" {
+  type        = string
+  description = "CIDR block for the VPC"
+}
+```
+
+### Root Module (`/terraform-main/terraform.tfvars`)
+
+```hcl
+vpc_cidr = "10.0.0.0/16"
+```
+
+### Module Call (`/terraform-main/main.tf`)
+
+```hcl
+module "vpc" {
+  source   = "./modules/vpc"
+  vpc_cidr = var.vpc_cidr
+}
+```
+
+### Inside Module (`/modules/vpc/variables.tf`)
+
+```hcl
+variable "vpc_cidr" {
+  description = "CIDR block for the VPC"
+}
+```
+
+Here:
+
+* The `vpc_cidr` value is **defined in root module** (`terraform.tfvars`)
+* It's **passed to the VPC module** via `main.tf`
+* The module **expects** that input (declared in its own `variables.tf`)
+
+> ✅ **But it never gets its value from the module’s own `variables.tf`** — that file is just a declaration, not a value provider.
+
+---
+
+## 📌 Summary
+
+| File                                     | Purpose                                      |
+| ---------------------------------------- | -------------------------------------------- |
+| Root `variables.tf`                      | Declares what inputs the root module expects |
+| Root `terraform.tfvars` or CLI vars      | Provides actual values                       |
+| Module `variables.tf`                    | Declares what inputs the module **expects**  |
+| Module **does not** assign values itself | Only root does                               |
+
+---
+
+Let me know if you'd like a sample project to try this out or a diagram to visualize it better.
